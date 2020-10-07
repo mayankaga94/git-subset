@@ -1,0 +1,44 @@
+#!/bin/dash
+commit=`echo $1 | cut -d':' -f1`
+file=`echo $1 | cut -d':' -f2`
+
+#echo $1
+#echo $commit
+#echo $file
+#echo $#
+
+if test $# -gt 1; then
+	echo "usage: shrug-show <commit>:<filename>"
+	exit 1
+# check for incorrect argument is provided
+elif test ! `echo $1 | egrep "^[0-9]*:"`; then
+	echo "shrug-show: error: invalid object $1"
+	exit 1
+# check file name
+elif test ! `echo $file | egrep "^[a-zA-Z0-9][a-zA-Z0-9\._\-]*$"`; then
+	echo "shrug-show: error: invalid filename '$file'"
+#if commit is not provided
+elif test "$commit" = ""; then
+	# check if file exists in index
+	if test ! -f ".shrug/index/$file"; then
+		# throw error
+		echo "shrug-show: error: '$file' not found in index"
+		exit 1
+	fi
+	# show the file
+	cat .shrug/index/$file
+# commit is provided
+else
+	# check if commit exists
+	if test ! -d ".shrug/commits/$commit"; then
+		echo "shrug-show: error: unknown commit '$commit'"
+		exit 1
+	fi
+	# check if file exists in the commit
+	if test ! -f ".shrug/commits/$commit/$file"; then
+		echo "shrug-show: error: '$file' not found in commit $commit"
+		exit 1
+	fi
+	# show the file
+	cat .shrug/commits/$commit/$file
+fi

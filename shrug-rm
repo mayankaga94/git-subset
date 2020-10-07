@@ -1,0 +1,122 @@
+#!/bin/dash
+
+# if no .shrug repo
+if test ! -d ".shrug"; then
+	echo "shrug-rm: error: no .shrug directory containing shrug repository exists"
+	exit 1
+# if no commits yet
+elif test ! -f ".shrug/log"; then
+	echo "shrug-rm: error: your repository does not have any commits yet"
+	exit 1
+# if no arguments provided
+elif test "$#" = "0"; then
+	echo "usage: shrug-rm [--force] [--cached] <filenames>"
+	exit 1
+fi
+
+cached=0
+force=0
+version=`cat .shrug/log | wc -l`
+version=$(( version - 1 ))
+
+for file in "$@"
+do
+	if test "$file" = "--cached"; then
+		cached=1
+		continue
+	fi
+	if test "$file" = "--force"; then
+		force=1
+		continue
+	fi
+	# index path
+	index=".shrug/index/$file"
+	# repo path
+	repo=".shrug/commits/$version/$file"
+	
+	# Usage shrug-rm $file
+	# first check if we can remove from index
+	
+	# if file is not in index or working directory then throw error and exit
+	if test ! -f ".shrug/index/$file" || test ! -f "$file"; then
+		echo "shrug-rm: error: '$file' is not in the shrug repository"
+		exit 1
+	fi
+
+	# if force then continue to check for next file
+	if test $force -eq 1; then
+		continue
+	fi
+	
+	# diff between index and working
+	diff_i_w=`diff .shrug/index/$file $file`
+	diff_i_r=""	
+	# file does not exist in latest commit but does in index
+	# change
+	if test $cached -eq 0; then	
+	#change!
+	if test ! -f ".shrug/commits/$version/$file"; then
+		diff_i_r="diff"
+		# changed for autotest
+		# no change between working and index
+		#if test "$diff_i_w" = ""; then
+		#	diff_i_r=""
+		#else
+		#	diff_i_r="diff"
+		#fi
+	else
+		# difference between index and repo file
+		diff_i_r=`diff .shrug/index/$file .shrug/commits/$version/$file`
+		#echo $diff_i_r
+	fi
+	#change		
+	fi
+	#change!
+	
+	# if --cached = 1
+	if test $cached -eq 1; then
+		#if file exists in last commit
+		if test -f ".shrug/commits/$version/$file"; then
+			diff_i_r=`diff .shrug/index/$file .shrug/commits/$version/$file`
+		fi
+	fi
+	
+	#echo $diff_i_r
+	
+	# if index and working are same but different from repo
+	if test "$diff_i_w" = "" && test "$diff_i_r" != "" && test $cached -eq 0; then
+		echo "shrug-rm: error: '$file' has changes staged in the index"
+		exit 1
+	fi
+	# if index is different from working
+	if test "$diff_i_w" != ""; then
+		# if index is also differenet to repo
+		if test "$diff_i_r" != ""; then
+			echo "shrug-rm: error: '$file' in index is different to both working file and repository"
+			exit 1
+		# index is only different to working
+		else
+			# if --cached = 1 then the file can be removed, so we only throw an error if --cached = 0
+			if test $cached -eq 0; then
+				echo "shrug-rm: error: '$file' in repository is different to working file"
+				exit 1
+			fi
+		fi
+	fi	
+done
+
+# remove files
+for file in "$@"
+do 	
+	# ignore options
+	if test "$file" = "--cached" || test "$file" = "--force"; then
+		continue
+	fi
+	# remove from index
+	rm .shrug/index/$file
+	# if --cached = 0 then remove from working directory
+	if test $cached -eq 0; then
+		rm $file
+	fi
+done
+

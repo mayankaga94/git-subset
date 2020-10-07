@@ -1,0 +1,98 @@
+#!/bin/dash
+
+# if no .shrug repo
+if test ! -d ".shrug"; then
+        echo "shrug-status: error: no .shrug directory containing shrug repository exists"
+        exit 1
+# if no commits yet
+elif test ! -f ".shrug/log"; then
+        echo "shrug-status: error: your repository does not have any commits yet"
+        exit 1
+fi 
+
+for file in `find . -type f | rev | cut -d'/' -f 1 | rev | sort | uniq`
+do
+	if test "$file" = "shrug-init" || test "$file" = "shrug-add" || test "$file" = "shrug-commit" || test "$file" = "shrug-log" || test "$file" = "shrug-show" || test "$file" = "shrug-rm" || test "$file" = "shrug-status"; then
+                echo "$file - untracked"
+                continue
+        fi
+        if test "$file" = "log"; then
+                continue
+        fi
+        # If file exists on working directory but not in index
+        if test -f "$file" && test ! -f ".shrug/index/$file"; then
+                echo "$file - untracked"
+                continue
+        fi
+
+        # get current/last commit
+        version=`cat .shrug/log | wc -l`
+        version=$(( version - 1 ))
+
+        # if file has been added to index but not yet commited
+        if test -f "$file" && test -f ".shrug/index/$file" && test ! -f ".shrug/commits/$version/$file"; then
+                # if file diff in index and working
+                diff_i_w=`diff .shrug/index/$file $file`
+                if test "$diff_i_w" != ""; then
+                        echo "$file - added to index, file changed"
+                else
+                        echo "$file - added to index"
+                fi
+                continue
+        fi
+
+        # if file added to index not committed and deleted from working
+        if test ! -f "$file" && test -f ".shrug/index/$file" && test ! -f ".shrug/commits/$version/$file"; then
+                # if file diff in index and working
+                echo "$file - added to index, file deleted"
+                continue
+        fi
+
+        # file exists in working, index and repo
+        if test -f "$file" && test -f ".shrug/index/$file" && test -f ".shrug/commits/$version/$file"; then
+                # diff between index and working
+                diff_i_w=`diff .shrug/index/$file $file`
+                # diff between index and repo
+                diff_i_r=`diff .shrug/index/$file .shrug/commits/$version/$file`
+
+                # if working and index have changes
+                if test "$diff_i_w" = ""; then
+                        # if no change between index and repo, then no changes have been made
+                        if test "$diff_i_r" = ""; then
+                                echo "$file - same as repo"
+                                continue
+                        else
+                        # changes between (working,index) and repo
+                                echo "$file - file changed, changes staged for commit"
+                                continue
+                        fi
+                else
+                # if working and index same
+                        
+                        # if index same as repo
+                        if test "$diff_i_r" = ""; then
+                                echo "$file - file changed, changes not staged for commit"
+                                continue
+                        else
+                        # if index also different from repo
+                                echo "$file - file changed, different changes staged for commit"
+                                continue
+                        fi
+                fi
+        fi
+        # if file is not in working directory ie has been deleted
+        if test ! -f "$file" && test -f ".shrug/commits/$version/$file"; then
+                # if file has only been deleted from working and not in index (rm file)
+                if test -f ".shrug/index/$file"; then
+                        echo "$file - file deleted"
+                        continue
+                else
+                # file deleted from both index and working
+                        echo "$file - deleted"
+                        continue
+                fi
+        fi
+
+done
+	
+

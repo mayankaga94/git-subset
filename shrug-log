@@ -1,0 +1,12 @@
+#!/bin/dash
+
+if test ! -d ".shrug"; then
+	echo "shrug-log: error: no .shrug directory containing shrug repository exists"
+elif test ! -f ".shrug/log"; then
+	echo "shrug-log: error: your repository does not have any commits yet"
+else
+	#cat .shrug/log
+	sed '1!G;h;$!d' .shrug/log
+fi
+	
+	
