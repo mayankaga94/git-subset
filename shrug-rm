@@ -59,15 +59,9 @@ do
 		diff_i_r="diff"
 		# changed for autotest
 		# no change between working and index
-		#if test "$diff_i_w" = ""; then
-		#	diff_i_r=""
-		#else
-		#	diff_i_r="diff"
-		#fi
 	else
 		# difference between index and repo file
 		diff_i_r=`diff .shrug/index/$file .shrug/commits/$version/$file`
-		#echo $diff_i_r
 	fi
 	#change		
 	fi
@@ -80,8 +74,6 @@ do
 			diff_i_r=`diff .shrug/index/$file .shrug/commits/$version/$file`
 		fi
 	fi
-	
-	#echo $diff_i_r
 	
 	# if index and working are same but different from repo
 	if test "$diff_i_w" = "" && test "$diff_i_r" != "" && test $cached -eq 0; then
